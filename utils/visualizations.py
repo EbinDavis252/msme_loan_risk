@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import streamlit as st
 
 def pie_chart_risk_distribution(df):
     fig, ax = plt.subplots()
@@ -25,7 +26,6 @@ def bar_chart_by_business_type(df):
 def boxplot_loan_risk(df):
     fig, ax = plt.subplots()
 
-    # Check if required columns exist
     if 'Risk_Prediction' not in df.columns or 'LoanAmount' not in df.columns:
         st.warning("Required columns not found: 'Risk_Prediction' and 'LoanAmount'")
         return fig
