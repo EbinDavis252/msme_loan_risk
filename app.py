@@ -61,7 +61,7 @@ if uploaded_file:
         except Exception as e:
             st.error(f"Prediction error: {e}")
 
-from utils.visualizations import pie_chart_risk, bar_chart_by_business_type
+    from utils.visualizations import pie_chart_risk, bar_chart_by_business_type
 
 if 'results_df' in locals():
     st.subheader("📊 Visual Analysis of MSME Risk")
@@ -86,6 +86,12 @@ if 'results_df' in locals():
         st.dataframe(results_df[results_df["Risk_Prediction"] == 1])
     else:
         st.dataframe(results_df)
+
+    # Download CSV
+    st.subheader("📥 Download Scored Data")
+    csv = results_df.to_csv(index=False).encode('utf-8')
+    st.download_button("Download as CSV", csv, "msme_risk_scored.csv", "text/csv")
+
 
     # Download CSV
     st.subheader("📥 Download Scored Data")
