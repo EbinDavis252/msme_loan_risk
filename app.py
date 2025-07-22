@@ -92,15 +92,17 @@ if 'results_df' in locals():
     csv = results_df.to_csv(index=False).encode('utf-8')
     st.download_button("Download as CSV", csv, "msme_risk_scored.csv", "text/csv")
 
+from utils.report_generator import generate_pdf_report
 
-    # Download CSV
-    st.subheader("📥 Download Scored Data")
-    csv = results_df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download as CSV", csv, "msme_risk_scored.csv", "text/csv")
+# Save donut chart to file
+chart_path = "assets/risk_donut.png"
+fig1.savefig(chart_path)
 
-# Show sample
-st.subheader("📂 Preview of Built-in Dataset")
-sample = pd.read_csv("data/msme_loan_dataset.csv")
-st.dataframe(sample.head())
+# Generate and download PDF report
+pdf_path = "assets/msme_risk_report.pdf"
+generate_pdf_report(results_df, chart_path, pdf_path)
 
-conn.close()
+with open(pdf_path, "rb") as f:
+    st.download_button("📄 Download Risk Report PDF", f, file_name="msme_risk_report.pdf", mime="application/pdf")
+
+
