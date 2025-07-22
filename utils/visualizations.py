@@ -3,10 +3,16 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def pie_chart_risk(df):
-    counts = df['Risk_Prediction'].value_counts()
-    labels = ['Safe (0)', 'Risky (1)']
+    counts = df['Risk_Prediction'].value_counts().sort_index()
+
+    # Ensure both classes (0 and 1) are represented
+    counts = counts.reindex([0, 1], fill_value=0)
+
+    labels = ['Low Risk (0)', 'High Risk (1)']
+    colors = ['#36A2EB', '#FF6384']
+
     fig, ax = plt.subplots()
-    ax.pie(counts, labels=labels, autopct='%1.1f%%', startangle=90, colors=['#36A2EB', '#FF6384'])
+    ax.pie(counts, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors)
     ax.axis('equal')
     return fig
 
