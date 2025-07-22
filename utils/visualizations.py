@@ -4,11 +4,15 @@ import pandas as pd
 
 def pie_chart_risk_distribution(df):
     fig, ax = plt.subplots()
-    labels = ['Safe (0)', 'Risky (1)']
     sizes = df['Risk_Prediction'].value_counts().sort_index()
+
+    # Generate labels based on actual data
+    labels = [f'Safe (0)' if i == 0 else f'Risky (1)' for i in sizes.index]
+
     ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=['#00b894','#d63031'], startangle=140)
     ax.axis('equal')
     return fig
+
 
 def bar_chart_by_business_type(df):
     fig, ax = plt.subplots(figsize=(8, 4))
