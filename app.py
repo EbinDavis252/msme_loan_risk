@@ -1,112 +1,51 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 import os
+from utils.preprocessing import preprocess
+from utils.scoring import predict_risk
+from utils.visualizations import donut_chart_risk
+import matplotlib.pyplot as plt
 
-# Set up Streamlit page
 st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
-st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
+st.title("🧠 AI-Powered MSME Loan Risk & Credit Assessment System")
 
-# Sidebar upload
-st.sidebar.header("📁 Upload MSME Loan Application Data")
-uploaded_file = st.sidebar.file_uploader("Upload your MSME Loan CSV", type=["csv"])
+# Upload section
+st.sidebar.header("📁 Upload MSME Dataset")
+uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
 
-# Create DB folder
-os.makedirs("database", exist_ok=True)
-
-# Create DB and Table
-conn = sqlite3.connect("database/msme_applications.db")
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS loan_applications (
-    Business_ID TEXT,
-    Business_Type TEXT,
-    Years_in_Business INTEGER,
-    Annual_Turnover REAL,
-    Existing_Loan TEXT,
-    Loan_Amount_Requested REAL,
-    Credit_History_Score INTEGER,
-    Location TEXT,
-    Owner_Education TEXT,
-    Risk_Flag INTEGER
-)
-""")
-conn.commit()
-
-# Process uploaded file
-if uploaded_file:
+if uploaded_file is not None:
+    # Read and preprocess
     df = pd.read_csv(uploaded_file)
-    st.success("✅ File uploaded successfully!")
-    st.dataframe(df)
+    st.subheader("📄 Uploaded Data Preview")
+    st.dataframe(df.head())
 
-    # Save to DB
-    if st.button("📥 Save to Database"):
-        df.to_sql("loan_applications", conn, if_exists="replace", index=False)
-        st.success("🗄️ Data saved to SQLite database!")
-    
-    # Predict Risk
-    from utils.scoring import predict_risk
+    try:
+        processed_df = preprocess(df)
+        predictions = predict_risk(processed_df)
 
-    if st.button("🤖 Predict Loan Default Risk"):
-        try:
-            results_df = predict_risk(df)
-            st.subheader("🔍 Risk Prediction Results")
-            st.dataframe(results_df)
+        # Combine with original
+        results_df = df.copy()
+        results_df['Predicted_Risk'] = predictions
 
-            # Save results back to DB
-            results_df.to_sql("loan_applications", conn, if_exists="replace", index=False)
-            st.success("✅ Predictions stored in database!")
+        # Show prediction results
+        st.subheader("🔍 Risk Prediction Results")
+        st.dataframe(results_df[['Predicted_Risk']].value_counts().reset_index(name='Count'))
 
-        except Exception as e:
-            st.error(f"Prediction error: {e}")
+        # Generate donut chart
+        if not results_df.empty:
+            fig1 = donut_chart_risk(results_df)
 
-    from utils.visualizations  import donut_chart_risk, bar_chart_by_business_type
+            st.subheader("📊 Risk Distribution (Donut Chart)")
+            st.pyplot(fig1)
 
-if not results_df.empty:
-    st.success("Risk assessment complete.")
-    
-    # Donut Chart
-    fig1 = donut_chart_risk(results_df)
-    st.subheader("Risk Distribution - Donut Chart")
-    st.pyplot(fig1)
-    
-    # Save the donut chart to file
-    chart_path = "charts/donut_chart.png"
-    os.makedirs("charts", exist_ok=True)
-    fig1.savefig(chart_path)
+            # Save the chart
+            os.makedirs("charts", exist_ok=True)
+            chart_path = os.path.join("charts", "donut_chart.png")
+            fig1.savefig(chart_path)
+            st.success("📁 Donut chart saved to 'charts/donut_chart.png'")
 
-    with col2:
-        st.markdown("### 🏢 Avg Risk % by Business Type")
-        fig2 = bar_chart_by_business_type(results_df)
-        st.pyplot(fig2)
+    except Exception as e:
+        st.error(f"❌ Error during prediction: {e}")
 
-    # Filterable credit score table
-    st.subheader("📋 Credit Scorecard")
-    status_filter = st.selectbox("Filter by Risk Prediction", options=["All", "Safe", "Risky"])
-    if status_filter == "Safe":
-        st.dataframe(results_df[results_df["Risk_Prediction"] == 0])
-    elif status_filter == "Risky":
-        st.dataframe(results_df[results_df["Risk_Prediction"] == 1])
-    else:
-        st.dataframe(results_df)
-
-    # Download CSV
-    st.subheader("📥 Download Scored Data")
-    csv = results_df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download as CSV", csv, "msme_risk_scored.csv", "text/csv")
-
-from utils.report_generator import generate_pdf_report
-
-# Save donut chart to file
-chart_path = "assets/risk_donut.png"
-fig1.savefig(chart_path)
-
-# Generate and download PDF report
-pdf_path = "assets/msme_risk_report.pdf"
-generate_pdf_report(results_df, chart_path, pdf_path)
-
-with open(pdf_path, "rb") as f:
-    st.download_button("📄 Download Risk Report PDF", f, file_name="msme_risk_report.pdf", mime="application/pdf")
-
-
+else:
+    st.info("👈 Upload a CSV file from the sidebar to begin.")
