@@ -164,13 +164,3 @@ if st.session_state.username and st.session_state.get("role") == "admin":
             st.dataframe(df_uploads)
     else:
         st.info("No uploads found.")
-
-# ----------------------------
-# SAMPLE DATA PREVIEW
-# ----------------------------
-st.subheader("📂 Preview of Built-in Dataset")
-try:
-    sample = pd.read_csv("data/msme_loan_dataset.csv")
-    st.dataframe(sample.head())
-except FileNotFoundError:
-    st.warning("⚠️ Built-in dataset not found.")
