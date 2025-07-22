@@ -75,9 +75,15 @@ conn.commit()
 
 # Process uploaded file
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    st.success("✅ File uploaded successfully!")
-    st.dataframe(df)
+    filename = uploaded_file.name
+    # Save file
+    filepath = os.path.join("data/uploaded_data", filename)
+    with open(filepath, "wb") as f:
+        f.write(uploaded_file.read())
+
+    # 🔐 Log upload
+    if st.session_state.username:
+        log_upload(st.session_state.username, filename)
 
     # Save to DB
     if st.button("📥 Save to Database"):
@@ -165,3 +171,12 @@ st.info(f"""
 - High Risk MSMEs: {high_risk_count}/{total}
 - Urgent Review Recommended for flagged businesses.
 """)
+if st.session_state.role == "admin":
+    st.subheader("🛠 Admin Panel: Upload Tracker")
+    data = fetch_uploads()
+    if data:
+        df_uploads = pd.DataFrame(data, columns=["ID", "Username", "File", "Time"])
+        with st.expander("📋 View Upload History"):
+            st.dataframe(df_uploads)
+    else:
+        st.info("No uploads found.")
