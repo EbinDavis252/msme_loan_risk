@@ -1,51 +1,68 @@
 import streamlit as st
 import pandas as pd
+import sqlite3
 import os
-from utils.scoring import predict_risk
-from utils.visualizations import donut_chart_risk
-import base64
 
-# Set page config
-st.set_page_config(page_title="MSME Loan Risk & Credit Assessment", layout="wide")
+# Set up Streamlit page
+st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
+st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
 
-# Title
-st.title("💼 MSME Loan Risk & Credit Assessment System")
-st.markdown("This AI-powered tool predicts MSME loan default risk and generates credit insights.")
+# Sidebar upload
+st.sidebar.header("📁 Upload MSME Loan Application Data")
+uploaded_file = st.sidebar.file_uploader("Upload your MSME Loan CSV", type=["csv"])
 
-# Upload section
-st.sidebar.header("📤 Upload MSME Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload your MSME CSV file", type=["csv"])
+# Create DB folder
+os.makedirs("database", exist_ok=True)
 
-# Load dataset
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.success("✅ File uploaded successfully!")
+# Create DB and Table
+conn = sqlite3.connect("database/msme_applications.db")
+cursor = conn.cursor()
 
-        st.subheader("📄 Uploaded Data Preview")
-        st.dataframe(df.head())
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS loan_applications (
+    Business_ID TEXT,
+    Business_Type TEXT,
+    Years_in_Business INTEGER,
+    Annual_Turnover REAL,
+    Existing_Loan TEXT,
+    Loan_Amount_Requested REAL,
+    Credit_History_Score INTEGER,
+    Location TEXT,
+    Owner_Education TEXT,
+    Risk_Flag INTEGER
+)
+""")
+conn.commit()
 
-        # Remove target column if present to avoid prediction errors
-        if 'Risk_Flag' in df.columns:
-            df = df.drop(columns=['Risk_Flag'])
+# Process uploaded file
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    st.success("✅ File uploaded successfully!")
+    st.dataframe(df)
 
-        # Predict risk
-        results_df = predict_risk(df)
+    # Save to DB
+    if st.button("📥 Save to Database"):
+        df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+        st.success("🗄️ Data saved to SQLite database!")
+    # Predict Risk
+    from utils.scoring import predict_risk
 
-        st.subheader("🔍 Prediction Results")
-        st.dataframe(results_df)
+    if st.button("🤖 Predict Loan Default Risk"):
+        try:
+            results_df = predict_risk(df)
+            st.subheader("🔍 Risk Prediction Results")
+            st.dataframe(results_df)
 
-        # Downloadable CSV
-        csv = results_df.to_csv(index=False)
-        b64 = base64.b64encode(csv.encode()).decode()
-        st.markdown(f'<a href="data:file/csv;base64,{b64}" download="loan_risk_predictions.csv" class="button">📥 Download Results CSV</a>', unsafe_allow_html=True)
+            # Save results back to DB
+            results_df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+            st.success("✅ Predictions stored in database!")
 
-        # Donut chart visualization
-        st.subheader("📊 Risk Distribution Overview")
-        fig1 = donut_chart_risk(results_df)
-        st.pyplot(fig1)
+        except Exception as e:
+            st.error(f"Prediction error: {e}")
 
-    except Exception as e:
-        st.error(f"❌ Error reading or processing the file: {e}")
-else:
-    st.info("Please upload a valid CSV file to proc
+# Show sample
+st.subheader("📂 Preview of Built-in Dataset")
+sample = pd.read_csv("data/msme_loan_dataset.csv")
+st.dataframe(sample.head())
+
+conn.close()
