@@ -44,6 +44,7 @@ if uploaded_file:
     if st.button("📥 Save to Database"):
         df.to_sql("loan_applications", conn, if_exists="replace", index=False)
         st.success("🗄️ Data saved to SQLite database!")
+    
     # Predict Risk
     from utils.scoring import predict_risk
 
@@ -60,6 +61,36 @@ if uploaded_file:
         except Exception as e:
             st.error(f"Prediction error: {e}")
 
+from utils.visualizations import pie_chart_risk, bar_chart_by_business_type
+
+if 'results_df' in locals():
+    st.subheader("📊 Visual Analysis of MSME Risk")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("### ✅ Safe vs Risky MSMEs")
+        fig1 = pie_chart_risk(results_df)
+        st.pyplot(fig1)
+
+    with col2:
+        st.markdown("### 🏢 Avg Risk % by Business Type")
+        fig2 = bar_chart_by_business_type(results_df)
+        st.pyplot(fig2)
+
+    # Filterable credit score table
+    st.subheader("📋 Credit Scorecard")
+    status_filter = st.selectbox("Filter by Risk Prediction", options=["All", "Safe", "Risky"])
+    if status_filter == "Safe":
+        st.dataframe(results_df[results_df["Risk_Prediction"] == 0])
+    elif status_filter == "Risky":
+        st.dataframe(results_df[results_df["Risk_Prediction"] == 1])
+    else:
+        st.dataframe(results_df)
+
+    # Download CSV
+    st.subheader("📥 Download Scored Data")
+    csv = results_df.to_csv(index=False).encode('utf-8')
+    st.download_button("Download as CSV", csv, "msme_risk_scored.csv", "text/csv")
 
 # Show sample
 st.subheader("📂 Preview of Built-in Dataset")
