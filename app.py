@@ -88,3 +88,28 @@ sample = pd.read_csv("data/msme_loan_dataset.csv")
 st.dataframe(sample.head())
 
 conn.close()
+from utils.report_generator import generate_pdf_report
+
+# Section: PDF REPORT
+st.subheader("📄 Generate Risk Report")
+
+if st.button("Generate PDF Report"):
+    pdf_path = generate_pdf_report(results_df)
+    with open(pdf_path, "rb") as f:
+        st.success("PDF report generated successfully.")
+        st.download_button(
+            label="📥 Download Report",
+            data=f,
+            file_name="msme_loan_risk_report.pdf",
+            mime="application/octet-stream"
+        )
+# Section: Simulated Email Alert
+st.subheader("📧 Simulated Email Alert")
+high_risk_count = (results_df['Risk_Prediction'] == 'High Risk').sum()
+total = len(results_df)
+
+st.info(f"""
+📤 Sending alert to loan officer...
+- High Risk MSMEs: {high_risk_count}/{total}
+- Urgent Review Recommended for flagged businesses.
+""")
