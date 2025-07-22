@@ -63,15 +63,18 @@ if uploaded_file:
 
     from utils.visualizations  import donut_chart_risk, bar_chart_by_business_type
 
-if 'results_df' in locals():
-    st.subheader("📊 Visual Analysis of MSME Risk")
+if not results_df.empty:
+    st.success("Risk assessment complete.")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### ✅ Safe vs Risky MSMEs")
-        from utils.visualizations import donut_chart_risk
-        fig1 = donut_chart_risk(results_df)
-        st.pyplot(fig1)
+    # Donut Chart
+    fig1 = donut_chart_risk(results_df)
+    st.subheader("Risk Distribution - Donut Chart")
+    st.pyplot(fig1)
+    
+    # Save the donut chart to file
+    chart_path = "charts/donut_chart.png"
+    os.makedirs("charts", exist_ok=True)
+    fig1.savefig(chart_path)
 
     with col2:
         st.markdown("### 🏢 Avg Risk % by Business Type")
