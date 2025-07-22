@@ -1,32 +1,33 @@
 from fpdf import FPDF
-from datetime import datetime
 import os
+from datetime import datetime
 
-class PDFReport(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'MSME Loan Risk Assessment Report', ln=1, align='C')
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', align='C')
-
-def generate_pdf_report(result_df, chart_path, save_path):
-    risk_counts = result_df['Predicted_Risk'].value_counts()
-
-    pdf = PDFReport()
+def generate_pdf_report(results_df, filename="msme_risk_report.pdf"):
+    pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, "MSME Loan Risk Assessment Report", ln=True, align="C")
 
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", '', 12)
     pdf.cell(0, 10, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
 
-    pdf.cell(0, 10, f"Total Records: {len(result_df)}", ln=True)
-    pdf.cell(0, 10, f"High Risk: {risk_counts.get('High Risk', 0)}", ln=True)
-    pdf.cell(0, 10, f"Low Risk: {risk_counts.get('Low Risk', 0)}", ln=True)
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(50, 10, "Business Name", 1)
+    pdf.cell(40, 10, "Loan Amount", 1)
+    pdf.cell(40, 10, "Risk", 1)
+    pdf.cell(30, 10, "Score", 1)
+    pdf.ln()
 
-    pdf.cell(0, 10, "", ln=True)
-    if os.path.exists(chart_path):
-        pdf.image(chart_path, x=60, y=None, w=90)
+    pdf.set_font("Arial", '', 12)
+    for idx, row in results_df.head(20).iterrows():
+        pdf.cell(50, 10, str(row['Business_Name'])[:15], 1)
+        pdf.cell(40, 10, str(row['LoanAmount']), 1)
+        pdf.cell(40, 10, str(row['Risk_Prediction']), 1)
+        pdf.cell(30, 10, str(row['Risk_Score']), 1)
+        pdf.ln()
 
-    pdf.output(save_path)
+    os.makedirs("reports", exist_ok=True)
+    report_path = os.path.join("reports", filename)
+    pdf.output(report_path)
+    return report_path
