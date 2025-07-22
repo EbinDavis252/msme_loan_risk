@@ -11,6 +11,19 @@ st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
 st.sidebar.header("📁 Upload MSME Loan Application Data")
 uploaded_file = st.sidebar.file_uploader("Upload CSV File", type=["csv"])
 
+from utils.scoring import predict_risk
+
+# Risk Prediction
+if uploaded_file and st.button("🤖 Predict Risk & Score"):
+    scored_df = predict_risk(df)
+    st.subheader("📊 Prediction Results")
+    st.dataframe(scored_df)
+
+    # Save predictions to DB
+    scored_df.to_sql("loan_applications", conn, if_exists='replace', index=False)
+    st.success("✅ Predictions saved to database!")
+
+
 # SQLite Database Setup
 db_path = "database/msme_applications.db"
 os.makedirs("database", exist_ok=True)
