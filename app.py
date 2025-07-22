@@ -74,12 +74,22 @@ CREATE TABLE IF NOT EXISTS loan_applications (
 conn.commit()
 
 # Process uploaded file
-if uploaded_file:
+if uploaded_file is not None:
     filename = uploaded_file.name
-    # Save file
+    
+    # ✅ Ensure directory exists
+    os.makedirs("data/uploaded_data", exist_ok=True)
+    
+    # ✅ Save file
     filepath = os.path.join("data/uploaded_data", filename)
     with open(filepath, "wb") as f:
         f.write(uploaded_file.read())
+    
+    # ✅ Log Upload to DB
+    if st.session_state.username:
+        log_upload(st.session_state.username, filename)
+
+    st.success(f"✅ File '{filename}' uploaded successfully!")
 
     # 🔐 Log upload
     if st.session_state.username:
