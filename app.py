@@ -44,6 +44,22 @@ if uploaded_file:
     if st.button("📥 Save to Database"):
         df.to_sql("loan_applications", conn, if_exists="replace", index=False)
         st.success("🗄️ Data saved to SQLite database!")
+    # Predict Risk
+    from utils.scoring import predict_risk
+
+    if st.button("🤖 Predict Loan Default Risk"):
+        try:
+            results_df = predict_risk(df)
+            st.subheader("🔍 Risk Prediction Results")
+            st.dataframe(results_df)
+
+            # Save results back to DB
+            results_df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+            st.success("✅ Predictions stored in database!")
+
+        except Exception as e:
+            st.error(f"Prediction error: {e}")
+
 
 # Show sample
 st.subheader("📂 Preview of Built-in Dataset")
