@@ -3,35 +3,24 @@ import pandas as pd
 import sqlite3
 import os
 
-# Title
+# Set up Streamlit page
 st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
 st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
 
-# Upload Section
+# Sidebar upload
 st.sidebar.header("📁 Upload MSME Loan Application Data")
-uploaded_file = st.sidebar.file_uploader("Upload CSV File", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload your MSME Loan CSV", type=["csv"])
 
-from utils.scoring import predict_risk
-
-# Risk Prediction
-if uploaded_file and st.button("🤖 Predict Risk & Score"):
-    scored_df = predict_risk(df)
-    st.subheader("📊 Prediction Results")
-    st.dataframe(scored_df)
-
-    # Save predictions to DB
-    scored_df.to_sql("loan_applications", conn, if_exists='replace', index=False)
-    st.success("✅ Predictions saved to database!")
-
-
-# SQLite Database Setup
-db_path = "database/msme_applications.db"
+# Create DB folder
 os.makedirs("database", exist_ok=True)
-conn = sqlite3.connect(db_path)
+
+# Create DB and Table
+conn = sqlite3.connect("database/msme_applications.db")
 cursor = conn.cursor()
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS loan_applications (
-    Business_ID TEXT PRIMARY KEY,
+    Business_ID TEXT,
     Business_Type TEXT,
     Years_in_Business INTEGER,
     Annual_Turnover REAL,
@@ -45,21 +34,20 @@ CREATE TABLE IF NOT EXISTS loan_applications (
 """)
 conn.commit()
 
-# Preview Uploaded Data
+# Process uploaded file
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     st.success("✅ File uploaded successfully!")
     st.dataframe(df)
 
-    # Save to database
+    # Save to DB
     if st.button("📥 Save to Database"):
-        df.to_sql("loan_applications", conn, if_exists='replace', index=False)
-        st.success("🗄️ Data saved to database!")
+        df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+        st.success("🗄️ Data saved to SQLite database!")
 
-# Load & Preview Sample
-st.subheader("🔍 Sample Dataset Preview")
-sample_df = pd.read_csv("data/sample_msmse_data.csv")
-st.dataframe(sample_df.head())
+# Show sample
+st.subheader("📂 Preview of Built-in Dataset")
+sample = pd.read_csv("data/msme_loan_dataset.csv")
+st.dataframe(sample.head())
 
-# Close DB
 conn.close()
