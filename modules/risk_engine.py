@@ -19,8 +19,14 @@ def generate_recommendation(row):
         return "Approve with standard conditions."
 
 def apply_risk_engine(df):
-    # Example rule: Higher loan amount + lower income → higher risk score
-    df["risk_score"] = (df["loan_amount"] / (df["annual_income"] + 1)).clip(0, 1)
+    required_cols = ["loan_amount", "annual_income"]
+    
+    if all(col in df.columns for col in required_cols):
+        df["risk_score"] = (df["loan_amount"] / (df["annual_income"] + 1)).clip(0, 1)
+    else:
+        # If missing, assign random risk scores (demo fallback)
+        df["risk_score"] = pd.Series([round(x, 2) for x in pd.np.random.rand(len(df))])
+    
     df["risk_level"] = df["risk_score"].apply(categorize_risk)
     df["recommendation"] = df.apply(generate_recommendation, axis=1)
     return df
