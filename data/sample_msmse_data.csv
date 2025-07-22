@@ -1,0 +1,11 @@
+Business_ID,Business_Type,Years_in_Business,Annual_Turnover,Existing_Loan,Loan_Amount_Requested,Credit_History_Score,Location,Owner_Education,Risk_Flag
+B001,Retail,5,75,Yes,10,720,Tier 1,Graduate,0
+B002,Manufacturing,2,50,No,20,680,Tier 2,Undergraduate,1
+B003,Services,8,100,Yes,15,760,Tier 1,Postgraduate,0
+B004,Agriculture,3,40,No,5,650,Tier 3,Graduate,1
+B005,Trading,10,150,Yes,25,780,Tier 1,Postgraduate,0
+B006,Retail,4,60,No,8,690,Tier 2,Graduate,1
+B007,Manufacturing,6,90,Yes,18,740,Tier 1,Graduate,0
+B008,Services,1,30,No,12,610,Tier 3,Undergraduate,1
+B009,Trading,9,120,Yes,20,750,Tier 2,Postgraduate,0
+B010,Agriculture,7,85,No,7,670,Tier 2,Graduate,1
