@@ -69,7 +69,10 @@ if 'results_df' in locals():
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("### ✅ Safe vs Risky MSMEs")
-        fig1 = donut_chart_risk(results_df)
+        from utils.visualizations import donut_chart_risk
+
+fig1 = donut_chart_risk(results_df)
+
         st.pyplot(fig1)
 
     with col2:
