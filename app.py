@@ -77,19 +77,25 @@ conn.commit()
 if uploaded_file is not None:
     filename = uploaded_file.name
     
-    # ✅ Ensure directory exists
+    # Save uploaded file
     os.makedirs("data/uploaded_data", exist_ok=True)
-    
-    # ✅ Save file
     filepath = os.path.join("data/uploaded_data", filename)
     with open(filepath, "wb") as f:
         f.write(uploaded_file.read())
-    
-    # ✅ Log Upload to DB
+
+    # ✅ Read the uploaded file into df
+    df = pd.read_csv(filepath)
+
+    # ✅ Save to SQLite
+    conn = sqlite3.connect("data/msme_risk.db")
+    df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+    conn.close()
+
+    # ✅ Store upload info in DB
     if st.session_state.username:
         log_upload(st.session_state.username, filename)
 
-    st.success(f"✅ File '{filename}' uploaded successfully!")
+    st.success(f"✅ File '{filename}' uploaded and saved to DB successfully!")
 
     # 🔐 Log upload
     if st.session_state.username:
