@@ -1,51 +1,51 @@
 import streamlit as st
 import pandas as pd
 import os
-from utils.preprocessing import preprocess
 from utils.scoring import predict_risk
 from utils.visualizations import donut_chart_risk
-import matplotlib.pyplot as plt
+import base64
 
-st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
-st.title("🧠 AI-Powered MSME Loan Risk & Credit Assessment System")
+# Set page config
+st.set_page_config(page_title="MSME Loan Risk & Credit Assessment", layout="wide")
+
+# Title
+st.title("💼 MSME Loan Risk & Credit Assessment System")
+st.markdown("This AI-powered tool predicts MSME loan default risk and generates credit insights.")
 
 # Upload section
-st.sidebar.header("📁 Upload MSME Dataset")
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
+st.sidebar.header("📤 Upload MSME Dataset")
+uploaded_file = st.sidebar.file_uploader("Upload your MSME CSV file", type=["csv"])
 
+# Load dataset
 if uploaded_file is not None:
-    # Read and preprocess
-    df = pd.read_csv(uploaded_file)
-    st.subheader("📄 Uploaded Data Preview")
-    st.dataframe(df.head())
-
     try:
-        processed_df = preprocess(df)
-        predictions = predict_risk(processed_df)
+        df = pd.read_csv(uploaded_file)
+        st.success("✅ File uploaded successfully!")
 
-        # Combine with original
-        results_df = df.copy()
-        results_df['Predicted_Risk'] = predictions
+        st.subheader("📄 Uploaded Data Preview")
+        st.dataframe(df.head())
 
-        # Show prediction results
-        st.subheader("🔍 Risk Prediction Results")
-        st.dataframe(results_df[['Predicted_Risk']].value_counts().reset_index(name='Count'))
+        # Remove target column if present to avoid prediction errors
+        if 'Risk_Flag' in df.columns:
+            df = df.drop(columns=['Risk_Flag'])
 
-        # Generate donut chart
-        if not results_df.empty:
-            fig1 = donut_chart_risk(results_df)
+        # Predict risk
+        results_df = predict_risk(df)
 
-            st.subheader("📊 Risk Distribution (Donut Chart)")
-            st.pyplot(fig1)
+        st.subheader("🔍 Prediction Results")
+        st.dataframe(results_df)
 
-            # Save the chart
-            os.makedirs("charts", exist_ok=True)
-            chart_path = os.path.join("charts", "donut_chart.png")
-            fig1.savefig(chart_path)
-            st.success("📁 Donut chart saved to 'charts/donut_chart.png'")
+        # Downloadable CSV
+        csv = results_df.to_csv(index=False)
+        b64 = base64.b64encode(csv.encode()).decode()
+        st.markdown(f'<a href="data:file/csv;base64,{b64}" download="loan_risk_predictions.csv" class="button">📥 Download Results CSV</a>', unsafe_allow_html=True)
+
+        # Donut chart visualization
+        st.subheader("📊 Risk Distribution Overview")
+        fig1 = donut_chart_risk(results_df)
+        st.pyplot(fig1)
 
     except Exception as e:
-        st.error(f"❌ Error during prediction: {e}")
-
+        st.error(f"❌ Error reading or processing the file: {e}")
 else:
-    st.info("👈 Upload a CSV file from the sidebar to begin.")
+    st.info("Please upload a valid CSV file to proc
