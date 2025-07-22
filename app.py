@@ -61,7 +61,7 @@ if uploaded_file:
         except Exception as e:
             st.error(f"Prediction error: {e}")
 
-    from utils.visualizations import pie_chart_risk, bar_chart_by_business_type
+    from utils.visualizations  import donut_chart_risk, bar_chart_by_business_type
 
 if 'results_df' in locals():
     st.subheader("📊 Visual Analysis of MSME Risk")
