@@ -90,6 +90,22 @@ if uploaded_file is not None:
     # Show Data Preview
     st.subheader("📄 Uploaded Data Preview")
     st.dataframe(df.head())
+from modules.risk_engine import apply_risk_engine
+
+# Apply AI-Based Risk Engine
+if df is not None:
+    df = apply_risk_engine(df)
+
+    st.subheader("📊 AI Risk Prediction & Recommendation")
+
+    st.dataframe(df[["applicant_name", "loan_amount", "annual_income", "risk_level", "recommendation"]])
+
+    # Bar chart of risk levels
+    st.bar_chart(df["risk_level"].value_counts())
+
+    # Optional: Filter for high-risk loans
+    if st.checkbox("🔍 Show Only High Risk Loans"):
+        st.dataframe(df[df["risk_level"] == "🚨 High Risk"])
 
     # Predict Risk
     if st.button("🤖 Predict Loan Default Risk"):
