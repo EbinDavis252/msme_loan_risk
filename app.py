@@ -2,6 +2,45 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
+from utils.auth import create_user_table, add_user, login_user
+from utils.database import create_upload_table, log_upload, fetch_uploads
+
+create_user_table()
+create_upload_table()
+
+if "username" not in st.session_state:
+    st.session_state.username = None
+
+st.sidebar.title("🔐 Login / Signup")
+
+# LOGIN
+if st.session_state.username is None:
+    login_tab, signup_tab = st.sidebar.tabs(["🔑 Login", "📝 Sign Up"])
+    
+    with login_tab:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            user = login_user(username, password)
+            if user:
+                st.session_state.username = user[0]
+                st.session_state.role = user[2]
+                st.success(f"Welcome {user[0]}!")
+                st.rerun()
+            else:
+                st.error("Incorrect username or password.")
+    
+    with signup_tab:
+        new_user = st.text_input("New Username")
+        new_pass = st.text_input("New Password", type="password")
+        if st.button("Create Account"):
+            add_user(new_user, new_pass)
+            st.success("Account created! You can now log in.")
+else:
+    st.sidebar.success(f"Logged in as: {st.session_state.username}")
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.username = None
+        st.rerun()
 
 # Set up Streamlit page
 st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
