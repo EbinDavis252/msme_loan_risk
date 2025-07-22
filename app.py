@@ -4,19 +4,34 @@ import sqlite3
 import os
 from utils.auth import create_user_table, add_user, login_user
 from utils.database import create_upload_table, log_upload, fetch_uploads
+from utils.scoring import predict_risk
+from utils.report_generator import generate_pdf_report
+from utils.visualizations import (
+    pie_chart_risk_distribution,
+    bar_chart_by_business_type,
+    boxplot_loan_risk,
+    histogram_risk_prob,
+    heatmap_correlation,
+    countplot_location
+)
 
+# Initial Setup
 create_user_table()
 create_upload_table()
+
+# Streamlit Page Setup
+st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
+st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
 
 if "username" not in st.session_state:
     st.session_state.username = None
 
 st.sidebar.title("🔐 Login / Signup")
 
-# LOGIN
+# LOGIN or SIGNUP Interface
 if st.session_state.username is None:
     login_tab, signup_tab = st.sidebar.tabs(["🔑 Login", "📝 Sign Up"])
-    
+
     with login_tab:
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -29,7 +44,7 @@ if st.session_state.username is None:
                 st.rerun()
             else:
                 st.error("Incorrect username or password.")
-    
+
     with signup_tab:
         new_user = st.text_input("New Username")
         new_pass = st.text_input("New Password", type="password")
@@ -42,94 +57,61 @@ else:
         st.session_state.username = None
         st.rerun()
 
-# Set up Streamlit page
-st.set_page_config(page_title="MSME Loan Risk Assessment", layout="wide")
-st.title("📊 AI-Powered MSME Loan Risk & Credit Assessment System")
-
-# Sidebar upload
+# Upload File Section
 st.sidebar.header("📁 Upload MSME Loan Application Data")
 uploaded_file = st.sidebar.file_uploader("Upload your MSME Loan CSV", type=["csv"])
 
-# Create DB folder
+# Create folders
 os.makedirs("database", exist_ok=True)
+os.makedirs("data/uploaded_data", exist_ok=True)
 
-# Create DB and Table
-conn = sqlite3.connect("database/msme_applications.db")
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS loan_applications (
-    Business_ID TEXT,
-    Business_Type TEXT,
-    Years_in_Business INTEGER,
-    Annual_Turnover REAL,
-    Existing_Loan TEXT,
-    Loan_Amount_Requested REAL,
-    Credit_History_Score INTEGER,
-    Location TEXT,
-    Owner_Education TEXT,
-    Risk_Flag INTEGER
-)
-""")
-conn.commit()
-
-# Process uploaded file
 if uploaded_file is not None:
     filename = uploaded_file.name
-    
-    # Save uploaded file
-    os.makedirs("data/uploaded_data", exist_ok=True)
     filepath = os.path.join("data/uploaded_data", filename)
+
+    # Save uploaded file
     with open(filepath, "wb") as f:
         f.write(uploaded_file.read())
 
-    # ✅ Read the uploaded file into df
     df = pd.read_csv(filepath)
 
-    # ✅ Save to SQLite
-    conn = sqlite3.connect("data/msme_risk.db")
-    df.to_sql("loan_applications", conn, if_exists="replace", index=False)
-    conn.close()
+    # Save uploaded data to SQLite
+    try:
+        with sqlite3.connect("data/msme_risk.db") as conn:
+            df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+        st.success(f"✅ File '{filename}' uploaded and saved to DB successfully!")
+    except Exception as e:
+        st.error(f"Database save error: {e}")
 
-    # ✅ Store upload info in DB
+    # Log upload
     if st.session_state.username:
         log_upload(st.session_state.username, filename)
 
-    st.success(f"✅ File '{filename}' uploaded and saved to DB successfully!")
+    # Show Data Preview
+    st.subheader("📄 Uploaded Data Preview")
+    st.dataframe(df.head())
 
-    # 🔐 Log upload
-    if st.session_state.username:
-        log_upload(st.session_state.username, filename)
-
-    # Save to DB
-    if st.button("📥 Save to Database"):
-        df.to_sql("loan_applications", conn, if_exists="replace", index=False)
-        st.success("🗄️ Data saved to SQLite database!")
     # Predict Risk
-    from utils.scoring import predict_risk
-
     if st.button("🤖 Predict Loan Default Risk"):
         try:
             results_df = predict_risk(df)
+            st.session_state["results_df"] = results_df
+
             st.subheader("🔍 Risk Prediction Results")
             st.dataframe(results_df)
 
-            # Save results back to DB
-            results_df.to_sql("loan_applications", conn, if_exists="replace", index=False)
+            # Save predictions
+            with sqlite3.connect("data/msme_risk.db") as conn:
+                results_df.to_sql("loan_applications", conn, if_exists="replace", index=False)
             st.success("✅ Predictions stored in database!")
-
         except Exception as e:
             st.error(f"Prediction error: {e}")
-from utils.visualizations import (
-    pie_chart_risk_distribution,
-    bar_chart_by_business_type,
-    boxplot_loan_risk,
-    histogram_risk_prob,
-    heatmap_correlation,
-    countplot_location
-)
 
-if 'results_df' in locals() or 'results_df' in globals():
+# ----------------------------
+# RISK ANALYSIS DASHBOARD
+# ----------------------------
+if "results_df" in st.session_state:
+    results_df = st.session_state["results_df"]
     st.subheader("📈 Risk Analysis Dashboard")
 
     col1, col2 = st.columns(2)
@@ -143,18 +125,10 @@ if 'results_df' in locals() or 'results_df' in globals():
     st.pyplot(heatmap_correlation(results_df))
     st.pyplot(countplot_location(results_df))
 
-# Show sample
-st.subheader("📂 Preview of Built-in Dataset")
-sample = pd.read_csv("data/msme_loan_dataset.csv")
-st.dataframe(sample.head())
-
-conn.close()
-from utils.report_generator import generate_pdf_report
-
-# Section: PDF REPORT
-st.subheader("📄 Generate Risk Report")
-
-if 'results_df' in locals() and results_df is not None:
+    # ----------------------------
+    # PDF REPORT
+    # ----------------------------
+    st.subheader("📄 Generate Risk Report")
     if st.button("Generate PDF Report"):
         pdf_path = generate_pdf_report(results_df)
         with open(pdf_path, "rb") as f:
@@ -166,7 +140,9 @@ if 'results_df' in locals() and results_df is not None:
                 mime="application/octet-stream"
             )
 
-    # Simulated Email Alert
+    # ----------------------------
+    # SIMULATED EMAIL ALERT
+    # ----------------------------
     st.subheader("📧 Simulated Email Alert")
     high_risk_count = (results_df['Risk_Prediction'] == 'High Risk').sum()
     total = len(results_df)
@@ -175,19 +151,11 @@ if 'results_df' in locals() and results_df is not None:
     - High Risk MSMEs: {high_risk_count}/{total}
     - Urgent Review Recommended for flagged businesses.
     """)
-else:
-    st.warning("⚠️ Please upload a dataset and run the risk prediction first to generate a report.")
-# Section: Simulated Email Alert
-st.subheader("📧 Simulated Email Alert")
-high_risk_count = (results_df['Risk_Prediction'] == 'High Risk').sum()
-total = len(results_df)
 
-st.info(f"""
-📤 Sending alert to loan officer...
-- High Risk MSMEs: {high_risk_count}/{total}
-- Urgent Review Recommended for flagged businesses.
-""")
-if st.session_state.role == "admin":
+# ----------------------------
+# ADMIN PANEL
+# ----------------------------
+if st.session_state.username and st.session_state.get("role") == "admin":
     st.subheader("🛠 Admin Panel: Upload Tracker")
     data = fetch_uploads()
     if data:
@@ -196,3 +164,13 @@ if st.session_state.role == "admin":
             st.dataframe(df_uploads)
     else:
         st.info("No uploads found.")
+
+# ----------------------------
+# SAMPLE DATA PREVIEW
+# ----------------------------
+st.subheader("📂 Preview of Built-in Dataset")
+try:
+    sample = pd.read_csv("data/msme_loan_dataset.csv")
+    st.dataframe(sample.head())
+except FileNotFoundError:
+    st.warning("⚠️ Built-in dataset not found.")
