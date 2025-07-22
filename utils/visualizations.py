@@ -23,10 +23,15 @@ def bar_chart_by_business_type(df):
     return fig
 
 def boxplot_loan_risk(df):
-    fig, ax = plt.subplots(figsize=(6,4))
-    sns.boxplot(x='Risk_Prediction', y='Loan_Amount_Requested', data=df, ax=ax, palette='Set2')
-    ax.set_title("Loan Amount vs Risk Prediction")
-    ax.set_xticklabels(['Safe', 'Risky'])
+    fig, ax = plt.subplots()
+
+    # Check if required columns exist
+    if 'Risk_Prediction' not in df.columns or 'LoanAmount' not in df.columns:
+        st.warning("Required columns not found: 'Risk_Prediction' and 'LoanAmount'")
+        return fig
+
+    sns.boxplot(x='Risk_Prediction', y='LoanAmount', data=df, ax=ax, palette='Set2')
+    ax.set_title('Loan Amount Distribution by Risk Category')
     return fig
 
 def histogram_risk_prob(df):
