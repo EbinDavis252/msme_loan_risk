@@ -59,6 +59,28 @@ if uploaded_file:
 
         except Exception as e:
             st.error(f"Prediction error: {e}")
+from utils.visualizations import (
+    pie_chart_risk_distribution,
+    bar_chart_by_business_type,
+    boxplot_loan_risk,
+    histogram_risk_prob,
+    heatmap_correlation,
+    countplot_location
+)
+
+if 'results_df' in locals() or 'results_df' in globals():
+    st.subheader("📈 Risk Analysis Dashboard")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.pyplot(pie_chart_risk_distribution(results_df))
+    with col2:
+        st.pyplot(bar_chart_by_business_type(results_df))
+
+    st.pyplot(boxplot_loan_risk(results_df))
+    st.pyplot(histogram_risk_prob(results_df))
+    st.pyplot(heatmap_correlation(results_df))
+    st.pyplot(countplot_location(results_df))
 
 # Show sample
 st.subheader("📂 Preview of Built-in Dataset")
