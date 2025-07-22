@@ -5,3 +5,4 @@ matplotlib
 seaborn
 joblib
 fpdf==1.7.2
+sqlite3
